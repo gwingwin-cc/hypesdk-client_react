@@ -11,10 +11,11 @@ type TableInstanceWithHooks<T extends object> = TableInstance<T> &
     };
 
 const ConsoleTable = (props: {
+    disableCreateButton? : boolean,
     createButtonLabel?: ReactElement | string,
     onCreateClick?: () => void,
     columns: any,
-    data: any
+    data: any,
 }) => {
 
     const {
@@ -48,13 +49,16 @@ const ConsoleTable = (props: {
     // Render the UI for your table
     return (
         <>
-            <Button variant={'success'}
-                    className={'mb-3'}
-                    onClick={() => {
-                        handleCreateButton()
-                    }}>
-                {props.createButtonLabel ?? 'Create'}
-            </Button>
+            {
+                props.disableCreateButton != true ?        <Button variant={'success'}
+                                                             className={'mb-3'}
+                                                             onClick={() => {
+                                                                 handleCreateButton()
+                                                             }}>
+                    {props.createButtonLabel ?? 'Create'}
+                </Button> : null
+            }
+
 
             <div className={'d-flex mb-2 flex-column flex-sm-row'}>
                 <div className={'d-flex align-items-center'}>
@@ -80,12 +84,11 @@ const ConsoleTable = (props: {
                         Showing {pageIndex + 1}-{(pageIndex+1) * pageSize} of {props.data.length} items.
                     </div>
                 </div>
-                <div className={'ms-auto d-flex align-items-center '}>
+                <div className={'ms-auto d-flex align-items-center d-none'}>
                     <Form.Control style={{height: 30}} placeholder={'Search'}></Form.Control>
                     <Button style={{width: 40, height: 35}} className={'p-0 ms-1'} variant={'outline-primary'}>
                         <Search size={20}/>
                     </Button>
-
                 </div>
             </div>
 
