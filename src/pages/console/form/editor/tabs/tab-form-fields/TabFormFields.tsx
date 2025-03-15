@@ -2,11 +2,9 @@ import ConsoleStaticTable from "../../../../../../hype/components/ConsoleStaticT
 import {useCallback, useEffect, useState} from "react";
 import {Button, Spinner} from "react-bootstrap";
 import {Edit, Plus, Trash} from "react-feather";
-import {useQuery} from "react-query";
 import {deleteFormField, fetchFormList, saveFormLayout} from "../../../../../../libs/axios";
 import useBoundStore from "../../../../../../stores";
 import FieldConfigCanvas from "./FieldConfigCanvas";
-import {Cell} from "react-table";
 import toast from "react-hot-toast";
 
 
@@ -64,7 +62,7 @@ const TabFormFields = (props: { data: Array<any> }) => {
             },
             {
                 header: 'Action',
-                cell: (cell: Cell) => (
+                cell: (cell: any) => (
                     <>
                         <Button size={'sm'}
                                 className={'text-dark'} variant={'link'}
@@ -84,7 +82,7 @@ const TabFormFields = (props: { data: Array<any> }) => {
     return <>
         <FieldConfigCanvas show={showFieldConfig}></FieldConfigCanvas>
         <ConsoleStaticTable onCreateClick={() => openFieldConfig('', 'new')} createButtonLabel={'Add Fields'}
-                      data={props.data} columns={columns()}/>
+                            data={props.data} columns={columns()}/>
     </>
 
 }

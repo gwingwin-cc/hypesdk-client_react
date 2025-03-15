@@ -8,6 +8,8 @@ import InputNumber from "../share-components/InputNumber";
 import Select from "react-select";
 import InputText from "../share-components/InputText";
 import {LayoutComponentInterface} from "../classes/generate-input.interface";
+import FileUploader from "../share-components/FileUploader";
+import RelationSelect from "../share-components/RelationSelect";
 
 const GenerateFormComponentElem = (props: {
     mode: string,
@@ -184,7 +186,7 @@ const GenerateFormComponentElem = (props: {
                                 invalid={requireInput != null && requireInput !== ''}
                                 defaultValue={inputValue}
                                 onChange={(e) => {
-                                    onChange(e, e.target.value)
+                                    onChange('onChange', e.target.value)
                                 }}
                             />
                         </div>
@@ -244,6 +246,7 @@ const GenerateFormComponentElem = (props: {
                     </>
                 )
             case 'select':
+                const selectedOption = config.options.radioOptions?.find((item: { value: string }) => (item.value) === (inputValue))
                 return (
                     <>
                         <Select
@@ -253,11 +256,29 @@ const GenerateFormComponentElem = (props: {
                             className={requireInput !== '' ? 'react-select is-invalid shadow-hover' : 'react-select shadow-hover'}
                             classNamePrefix='select_form'
                             isDisabled={config.options?.readonly || mode === FORM_MODE.READONLY}
-                            defaultValue={config.options.radioOptions?.filter((item: { value: string }) => parseInt(item.value) === parseInt(inputValue))}
+                            defaultValue={selectedOption}
                             onChange={e => {
                                 onChange(e, e.value);
                             }}
                         />
+                    </>
+                )
+            case 'relation-select':
+                return <RelationSelect
+                    inputValue={inputValue} requireInput={requireInput} onChange={
+                    onChange
+                } customStyle={mapCss(config.options?.configInput)} formSlug={formSlug}
+                    mode={mode} config={config} layoutComponent={layoutComponent}
+                />
+            case 'file-upload':
+                return (
+                    <>
+                        <FileUploader
+                            inputValue={inputValue}
+                            onChange={(e, val) => {
+                                onChange(e, val);
+                            }}
+                            />
                     </>
                 )
             case 'checkbox':
@@ -294,27 +315,27 @@ const GenerateFormComponentElem = (props: {
                     <>
                         <div className={(requireInput !== '' ? 'border-danger' : '')}
                         >
-                            <Flatpickr
-                                className={(config.options?.readonly || mode === FORM_MODE.READONLY ? 'disable-input' : '')}
-                                // data-enable-time
-                                placeholder={config.placeholder}
-                                disabled={config.options?.readonly || mode === FORM_MODE.READONLY}
-                                onChange={(e) => {
-                                    const date = DateTime.fromJSDate(e[0]).toFormat('yyyy-LL-dd');
-                                    onChange(e, date);
-                                }}
-                                defaultValue={inputValue}
-                                options={{
-                                    altInput: true,
-                                    altFormat: 'F j, Y',
-                                    dateFormat: 'Y-m-d',
-                                    locale: Thai,
-                                    // style: {
-                                    //     backgroundColor: '#f2f2f2'
-                                    // }
-                                }}
-                                // value={inputValue}
-                                id={`${formSlug}-${layoutComponent.slug}`}/>
+                            {/*<Flatpickr*/}
+                            {/*    className={(config.options?.readonly || mode === FORM_MODE.READONLY ? 'disable-input' : '')}*/}
+                            {/*    // data-enable-time*/}
+                            {/*    placeholder={config.placeholder}*/}
+                            {/*    disabled={config.options?.readonly || mode === FORM_MODE.READONLY}*/}
+                            {/*    onChange={(e) => {*/}
+                            {/*        const date = DateTime.fromJSDate(e[0]).toFormat('yyyy-LL-dd');*/}
+                            {/*        onChange(e, date);*/}
+                            {/*    }}*/}
+                            {/*    defaultValue={inputValue}*/}
+                            {/*    options={{*/}
+                            {/*        altInput: true,*/}
+                            {/*        altFormat: 'F j, Y',*/}
+                            {/*        dateFormat: 'Y-m-d',*/}
+                            {/*        locale: Thai,*/}
+                            {/*        // style: {*/}
+                            {/*        //     backgroundColor: '#f2f2f2'*/}
+                            {/*        // }*/}
+                            {/*    }}*/}
+                            {/*    // value={inputValue}*/}
+                            {/*    id={`${formSlug}-${layoutComponent.slug}`}/>*/}
                         </div>
                     </>
                 )
@@ -322,52 +343,52 @@ const GenerateFormComponentElem = (props: {
                 return (
                     <>
                         <div className={requireInput !== '' ? 'border-danger' : ''}>
-                            <Flatpickr
-                                className={`form-control ${config.options?.readonly || mode === FORM_MODE.READONLY ? 'disable-input' : ''}`}
-                                data-enable-time
-                                id={`${formSlug}-${layoutComponent.slug}`}
-                                placeholder={config.placeholder}
-                                disabled={config.options?.readonly || mode === FORM_MODE.READONLY}
-                                defaultValue={inputValue}
-                                options={{
-                                    altInput: true,
-                                    // altFormat: 'F j, Y',
-                                    // dateFormat: 'YYYY-MM-DD HH:MM'
-                                }}
-                                onChange={(e) => {
-                                    const date = DateTime.fromJSDate(e[0]).toFormat('yyyy-LL-dd hh:mm:ss');
-                                    // const date = DateTime.fromJSDate(e[0]).toFormat('yyyy-LL-dd');
-                                    onChange(e, date);
-                                }}
-                            />
+                            {/*<Flatpickr*/}
+                            {/*    className={`form-control ${config.options?.readonly || mode === FORM_MODE.READONLY ? 'disable-input' : ''}`}*/}
+                            {/*    data-enable-time*/}
+                            {/*    id={`${formSlug}-${layoutComponent.slug}`}*/}
+                            {/*    placeholder={config.placeholder}*/}
+                            {/*    disabled={config.options?.readonly || mode === FORM_MODE.READONLY}*/}
+                            {/*    defaultValue={inputValue}*/}
+                            {/*    options={{*/}
+                            {/*        altInput: true,*/}
+                            {/*        // altFormat: 'F j, Y',*/}
+                            {/*        // dateFormat: 'YYYY-MM-DD HH:MM'*/}
+                            {/*    }}*/}
+                            {/*    onChange={(e) => {*/}
+                            {/*        const date = DateTime.fromJSDate(e[0]).toFormat('yyyy-LL-dd hh:mm:ss');*/}
+                            {/*        // const date = DateTime.fromJSDate(e[0]).toFormat('yyyy-LL-dd');*/}
+                            {/*        onChange(e, date);*/}
+                            {/*    }}*/}
+                            {/*/>*/}
                         </div>
                     </>
                 )
             case 'time':
                 return (
                     <>
-                        <Fragment>
-                            <div className={requireInput !== '' ? 'border-danger' : ''}>
-                                <Flatpickr
-                                    className='form-control'
-                                    id={`${formSlug}-${layoutComponent.slug}`}
-                                    placeholder={config.placeholder}
-                                    disabled={config.options?.readonly || mode === FORM_MODE.READONLY}
-                                    options={{
-                                        enableTime: true,
-                                        noCalendar: true,
-                                        dateFormat: 'H:i',
-                                        time_24hr: true
-                                    }}
-                                    value={inputValue}
-                                    onChange={(e) => {
-                                        // eslint-disable-next-line no-useless-concat
-                                        const time = DateTime.fromJSDate(e[0]).toFormat('hh:mm' + ':00');
-                                        onChange(e, time);
-                                    }}
-                                />
-                            </div>
-                        </Fragment>
+                        {/*<Fragment>*/}
+                        {/*    <div className={requireInput !== '' ? 'border-danger' : ''}>*/}
+                        {/*        <Flatpickr*/}
+                        {/*            className='form-control'*/}
+                        {/*            id={`${formSlug}-${layoutComponent.slug}`}*/}
+                        {/*            placeholder={config.placeholder}*/}
+                        {/*            disabled={config.options?.readonly || mode === FORM_MODE.READONLY}*/}
+                        {/*            options={{*/}
+                        {/*                enableTime: true,*/}
+                        {/*                noCalendar: true,*/}
+                        {/*                dateFormat: 'H:i',*/}
+                        {/*                time_24hr: true*/}
+                        {/*            }}*/}
+                        {/*            value={inputValue}*/}
+                        {/*            onChange={(e) => {*/}
+                        {/*                // eslint-disable-next-line no-useless-concat*/}
+                        {/*                const time = DateTime.fromJSDate(e[0]).toFormat('hh:mm' + ':00');*/}
+                        {/*                onChange(e, time);*/}
+                        {/*            }}*/}
+                        {/*        />*/}
+                        {/*    </div>*/}
+                        {/*</Fragment>*/}
                     </>
                 )
             default:

@@ -16,6 +16,9 @@ import {
     X
 } from "react-feather";
 import {getHomeRouteForLoggedInUser} from "../libs/util";
+import {useAppData} from "../contexts/AppDataContext";
+import {useAppAuth} from "../contexts/AppAuthContext";
+import {LoadingBar} from "../components/LoadingBar";
 
 function LayoutAuth() {
     const [showSidebar, setShowSidebar] = useState(true);
@@ -24,23 +27,38 @@ function LayoutAuth() {
     const appStore = useBoundStore((state) => state.app);
     const navigate = useNavigate();
     const location = useLocation();
-    useEffect( () => {
 
-        if(!authStore.sliceInit){
-            authStore.init();
+    const appAuthContext = useAppAuth()
+    const appDataContext = useAppData()
+
+    const isAdmin = useMemo( () => {
+        return roles?.find( (r: any) => r.slug == 'admin') != null
+    }, [roles])
+
+    useEffect(() => {
+        if(location.pathname !=  '/access-control' && roles && !isAdmin){
+            navigate('/access-control', {replace: true});
         }
+    }, [roles, location]);
 
-        if(authStore.sliceInit && authStore.user == null){
+    useEffect( () => {
+        if(!appAuthContext.isAuthenticated && appAuthContext.isInit){
             window.location.href = '/login'
         }
+        if(appAuthContext.isAuthenticated && appAuthContext.isInit){
+            authStore.fetchProfile()
+        }
 
-        if(authStore.sliceInit && authStore.user != null) {
-            const homePath = getHomeRouteForLoggedInUser(authStore.user.roles);
-            if (location.pathname == '/') {
-                navigate(homePath)
-            }
+    }, [appAuthContext.isAuthenticated, appAuthContext.isInit])
+
+    useEffect( () => {
+        if(!authStore.sliceInit){
+            authStore.init();
+            const url = appStore.apiUrl ?? '';
+            appStore.getAppInfo(url);
         }
     }, [authStore, location])
+
     return (<>
 
         <div className={`d-flex auth-layout ${showSidebar ? '' : 'collapse'}`}>
@@ -143,15 +161,6 @@ function LayoutAuth() {
                             )}
                         </NavLink>
                     </li>
-                    {/*<li className="mb-1">*/}
-                    {/*    <NavLink to="/console/project-setting" className="link-dark rounded">*/}
-                    {/*        {({isActive}) => (*/}
-                    {/*            <button className={`p-2 text-start w-100 btn rounded ${isActive ? 'btn-primary' : ''}`}>*/}
-                    {/*                <Tool strokeWidth={2} size={20}></Tool> Project Setting*/}
-                    {/*            </button>*/}
-                    {/*        )}*/}
-                    {/*    </NavLink>*/}
-                    {/*</li>*/}
 
                     <li className="border-top my-3"></li>
 

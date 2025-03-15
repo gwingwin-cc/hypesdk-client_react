@@ -66,7 +66,11 @@ const fieldTypeOptions: Array<FieldTypeOption> = [
         value: 'select',
         label: 'Select (TEXT)',
         fieldType: 'string'
-    },
+    },{
+        value: 'file-upload',
+        label: 'Files (DB)',
+        fieldType: 'json'
+    }
 ]
 
 const FieldConfigCanvas = (props: { show: boolean }) => {
@@ -200,13 +204,13 @@ const FieldConfigCanvas = (props: { show: boolean }) => {
                             render={({field}) => (<Input {...field} id='comp-name'
                                                          type='text'
                                                          onChange={(e) => {
-                                                             setSlugInit(e.target.value.trim().toLowerCase().replace(/ /g, "_"));
+                                                             setSlugInit(e.target.value.trim());
                                                              field.onChange(e)
                                                          }}
                                                          invalid={errors.name && true}/>)}
                         />
                     </div>
-                    <div>
+                    <div className={'mt-3'}>
                         <Label className='form-label' for='comp-slug'>
                             Field Slug
                         </Label>
@@ -222,7 +226,7 @@ const FieldConfigCanvas = (props: { show: boolean }) => {
                         />
                     </div>
 
-                    <div>
+                    <div className={'mt-3'}>
                         <Label className='form-label' for='component'>Field for Component</Label>
                         <Controller
                             name='selectedFieldType'

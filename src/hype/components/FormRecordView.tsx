@@ -5,7 +5,7 @@ import {
     createFormRecord,
     fetchForm, fetchFormBySlug,
     fetchFormRecord,
-    updateFormRecord
+    updateFormRecord, uploadFileToFormRecord
 } from "../../libs/axios";
 import {FormRecordViewBox} from "./FormRecordViewBox";
 import {findRootNode} from "../../libs/util";
@@ -77,10 +77,19 @@ export const FormRecordView = (props: IFormRecordViewProps) => {
     const [forceSave, setForceSave] = useState<any>({});
     const [formData, setFormData] = useState<FormInterface>();
     const navigate = useNavigate()
-
+    const [pendingUploadFile, setPendingUploadFile] = useState<any>({})
+    const [pendingDeleteFile, setPendingDeleteFile] = useState<any>({})
     useEffect(() => {
         setRecordId(props.recordId)
     }, [props.recordId]);
+
+    useEffect(() => {
+       console.log(pendingUploadFile)
+    }, [pendingUploadFile])
+
+    useEffect(() => {
+       console.log('pendingDeleteFile', pendingDeleteFile)
+    }, [pendingDeleteFile])
 
     const recordDataQuery = useQuery<FormInterface, any>([`/forms/${props.formId}/${props.recordId}`],
         () => {
@@ -103,8 +112,36 @@ export const FormRecordView = (props: IFormRecordViewProps) => {
     }, [])
 
     const handleOnBoxValueChange = useCallback((args: { event: string, boxId: string, boxData: any, slug: string, value: any }) => {
-
+        switch (args.event) {
+            case 'onFileRemove':
+                setPendingDeleteFile( (prev: any) => {
+                    prev[args.slug] = prev[args.slug] ?? []
+                    return {
+                        ...prev,
+                        [args.slug]: [...prev[args.slug], args.value.removedFile.id]
+                    }
+                })
+                break;
+            case 'onFileChange':
+            case 'onFileRemoveNew':
+                setPendingUploadFile( (prev: any) => {
+                    return {
+                        ...prev,
+                        [args.slug] : {
+                            ...args.value
+                        }
+                    }
+                })
+                break;
+            default:
+                setUpdatedRecordData((prevState: any) => ({
+                    ...prevState,
+                    [args.slug]: args.value,
+                }));
+                break
+        }
     }, [])
+
     const handleOnAction = useCallback((args: { event: string, boxId: string, boxData: any, slug: string }) => {
 
     }, [])
@@ -113,7 +150,7 @@ export const FormRecordView = (props: IFormRecordViewProps) => {
 
     }, [])
 
-    const createApi = useMutation((input: { data: any, recordState: RecordStateEnum }) => {
+    const createApi = useMutation((input: { data: any, recordState: RecordStateEnum, pendingFiles?: Array<any>  }) => {
         if(formData == null) {
             throw new Error('[createApi] formData not exist')
         }
@@ -128,6 +165,11 @@ export const FormRecordView = (props: IFormRecordViewProps) => {
         },
         onSuccess: async (data, variables, context) => {
             toast.success('Create success')
+            if (variables.pendingFiles != null) {
+                for (const pf of variables.pendingFiles) {
+                     await updateFileApi.mutateAsync({recordId: data.id, fieldName: pf.fieldName, files: pf.files})
+                }
+            }
             await queryClient.invalidateQueries([`recordList-${props.recordType ?? 'PROD'}`])
             if(searchParams.get('redirect') != null){
                 navigate(searchParams.get('redirect') ?? '/',  {replace: true})
@@ -140,17 +182,42 @@ export const FormRecordView = (props: IFormRecordViewProps) => {
         },
     })
 
-    const updateApi = useMutation((input: { data: any, recordState: RecordStateEnum }) => {
+    const updateFileApi = useMutation((input: { recordId: number, fieldName: string, files: File[] }) => {
+        if(formData == null){
+            throw new Error('[updateApi] formData not exist')
+        }
+        if( input.recordId == null){
+            throw new Error('[updateApi] update need recordId')
+        }
+        return uploadFileToFormRecord(formData.id, input.recordId, input.fieldName, input.files)
+    }, {
+        onMutate: variables => {
+            toast.loading(`Updating Files`, {id: 'update-file'})
+            return this
+        },
+        onError: (error, variables, context) => {
+            toast.error('Update File failed')
+        },
+        onSuccess: async (data, variables, context) => {
+            toast.success('Update File success')
+        },
+        onSettled: (data, error, variables, context) => {
+            toast.dismiss('update-file')
+        },
+    })
+
+
+    const updateApi = useMutation((input: { data: any, deleteFiles: any, recordState: RecordStateEnum, pendingFiles?: Array<any> }) => {
         if(formData == null){
             throw new Error('[updateApi] formData not exist')
         }
         if(recordId == null){
             throw new Error('[updateApi] update need recordId')
         }
-        return updateFormRecord(formData.id, recordId, input.data, input.recordState)
+        return updateFormRecord(formData.id, recordId, input.data, input.deleteFiles, input.recordState)
     }, {
         onMutate: variables => {
-            const toastRef = toast.loading(`Updating ${variables}`, {id: 'update'})
+            const toastRef = toast.loading(`Updating 1/${variables.pendingFiles?.length?? 0}`, {id: 'update'})
             return {toastRef: toastRef}
         },
         onError: (error, variables, context) => {
@@ -158,6 +225,12 @@ export const FormRecordView = (props: IFormRecordViewProps) => {
         },
         onSuccess: async (data, variables, context) => {
             toast.success('Update success')
+            if (variables.pendingFiles != null) {
+                for (const pf of variables.pendingFiles) {
+                     // @ts-ignore recordId is not null
+                    await updateFileApi.mutateAsync({recordId, fieldName: pf.fieldName, files: pf.files})
+                }
+            }
             await queryClient.invalidateQueries([`recordList-${props.recordType ?? 'PROD'}`])
         },
         onSettled: (data, error, variables, context) => {
@@ -221,7 +294,7 @@ export const FormRecordView = (props: IFormRecordViewProps) => {
         }}>
             {
                 query.isLoading || recordDataQuery.isLoading ?
-                    <div className={'d-flex justify-content-center'}>
+                    <div className={'d-flex mt-3 justify-content-center'}>
                         <div className="spinner-border" role="status">
                             <span className="visually-hidden">Loading...</span>
                         </div>
@@ -257,63 +330,78 @@ export const FormRecordView = (props: IFormRecordViewProps) => {
             {
                 query.status == 'success' ?
                     <>
-                        {
-                            (props.recordId != null && recordDataQuery.status == 'success') || props.recordId == null ?
-                                <>
-                                    {
-                                        layoutRoot != null && layoutRoot.length > 0 ?
-                                            <>
-                                                {
-                                                    layoutItemList.filter(d => layoutRoot.indexOf(d.id) > -1).map((data, keyLayout) =>
-                                                        <FormRecordViewBox key={keyLayout} path={[keyLayout]}
-                                                                           boxId={data.id}/>
-                                                    )
-                                                }
-                                            </> : null
-                                    }
-
-                                    <div className={'d-inline-flex ms-auto'}>
-                                        <div className={'align-self-center'}>
+                    {
+                        (props.recordId != null && recordDataQuery.status == 'success') || props.recordId == null ?
+                            <>
+                                {
+                                    layoutRoot != null && layoutRoot.length > 0 ?
+                                        <>
                                             {
-                                                enableDraft ? <Button
-                                                        disabled={recordData['recordState'] == 'ACTIVE'}
-                                                        onClick={() => {
-                                                            if (recordId == null) {
-                                                                createApi.mutate({
-                                                                    data: updatedRecordData,
-                                                                    recordState:  RecordStateEnum.DRAFT,
-                                                                })
-                                                            } else {
-                                                                updateApi.mutate({
-                                                                    data: updatedRecordData,
-                                                                    recordState: RecordStateEnum.DRAFT,
-                                                                })
-                                                            }
-                                                        }}
-                                                        outline={true} className={'me-1'}
-                                                        color={'primary'}>  {recordId != null ? 'Update' : 'Create'} draft </Button>
-                                                    : null
+                                                layoutItemList.filter(d => layoutRoot.indexOf(d.id) > -1).map((data, keyLayout) =>
+                                                    <FormRecordViewBox key={keyLayout} path={[keyLayout]}
+                                                                       boxId={data.id}/>
+                                                )
                                             }
+                                        </> : null
+                                }
 
-                                            <Button
+                                <div className={'d-inline-flex ms-auto'}>
+                                    <div className={'align-self-center'}>
+                                        {
+                                            enableDraft ? <Button
+                                                disabled={recordData['recordState'] == 'ACTIVE'}
                                                 onClick={() => {
                                                     if (recordId == null) {
                                                         createApi.mutate({
                                                             data: updatedRecordData,
-                                                            recordState: RecordStateEnum.ACTIVE,
+                                                            recordState:  RecordStateEnum.DRAFT,
                                                         })
                                                     } else {
                                                         updateApi.mutate({
                                                             data: updatedRecordData,
-                                                            recordState: RecordStateEnum.ACTIVE,
+                                                            deleteFiles: pendingDeleteFile,
+                                                            recordState: RecordStateEnum.DRAFT,
                                                         })
                                                     }
                                                 }}
-                                                color={'primary'}> {recordId != null ? 'Update' : 'Create'} </Button>
-                                        </div>
+                                                outline={true} className={'me-1'}
+                                                color={'primary'}>  {recordId != null ? 'Update' : 'Create'} draft </Button>
+                                                : null
+                                        }
+
+                                        <Button
+                                            onClick={() => {
+                                                if (recordId == null) {
+                                                    createApi.mutate({
+                                                        data: updatedRecordData,
+                                                        recordState: RecordStateEnum.ACTIVE,
+                                                        pendingFiles: Object.keys(pendingUploadFile).map((fieldName) => {
+                                                            return {
+                                                                fieldName: fieldName,
+                                                                files: pendingUploadFile[fieldName].files.filter( (f: any) => f.id == null)
+                                                            }
+                                                        })
+                                                    })
+                                                } else {
+                                                    updateApi.mutate({
+                                                        data: updatedRecordData,
+                                                        deleteFiles: pendingDeleteFile,
+                                                        recordState: RecordStateEnum.ACTIVE,
+                                                        pendingFiles: Object.keys(pendingUploadFile).map((fieldName) => {
+                                                             return {
+                                                                fieldName: fieldName,
+                                                                files: pendingUploadFile[fieldName].files.filter( (f: any) => f.id == null)
+                                                            }
+                                                        })
+                                                    })
+
+                                                }
+                                            }}
+                                            color={'primary'}> {recordId != null ? 'Update' : 'Create'} </Button>
                                     </div>
-                                </>: null
-                        }
+                                </div>
+                            </>: null
+                    }
                     </> : null
             }
 

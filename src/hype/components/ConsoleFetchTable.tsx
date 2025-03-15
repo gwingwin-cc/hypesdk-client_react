@@ -2,18 +2,24 @@ import BTable from "react-bootstrap/Table";
 import {Button, ButtonGroup, Card, Form, Spinner} from "react-bootstrap";
 import {ReactElement, useCallback, useMemo, useState} from "react";
 import {ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search} from "react-feather";
-import {flexRender, getCoreRowModel, PaginationState, useReactTable} from "@tanstack/react-table";
+import {flexRender, getCoreRowModel, useReactTable} from "@tanstack/react-table";
 
 const ConsoleFetchTable = (props: {
-    disableCreateButton? : boolean,
-    hideCreateButton? : boolean,
-    hideSearch? : boolean,
+    disableCreateButton?: boolean,
+    hideCreateButton?: boolean,
+    hideSearch?: boolean,
+    handleSearch?: (search: string) => void,
     createButtonLabel?: ReactElement | string,
     onCreateClick?: () => void,
     columns: any,
     data: any,
     total: number,
     showLoading: boolean,
+    filters?: {
+        key: string,
+        value: string
+        label: string
+    }[]
     pagination: {
         gotoPage: (page: number) => void,
         pageSize: number,
@@ -21,6 +27,7 @@ const ConsoleFetchTable = (props: {
         setPageSize: (size: number) => void,
     }
 }) => {
+    const [search,setSearch] = useState('')
 
     const pagination = props.pagination
     const previousPage = () => {
@@ -32,13 +39,14 @@ const ConsoleFetchTable = (props: {
     };
 
 
+
     const canPreviousPage = useMemo(() => {
-       return  props.pagination.pageIndex > 1
-    }, [props.pagination.pageIndex] )
+        return props.pagination.pageIndex > 1
+    }, [props.pagination.pageIndex])
 
     const canNextPage = useMemo(() => {
         return props.pagination.pageIndex < props.total / props.pagination.pageSize
-    }, [props.pagination.pageIndex, props.total , props.pagination.pageSize] )
+    }, [props.pagination.pageIndex, props.total, props.pagination.pageSize])
 
     const pageCount = useMemo(() => {
         return Math.ceil(props.total / props.pagination.pageSize)
@@ -63,26 +71,14 @@ const ConsoleFetchTable = (props: {
     // Render the UI for your table
     return (
         <>
-            {
-                props.hideCreateButton != true ?        <Button variant={'success'}
-                                                                disabled={props.disableCreateButton}
-                                                                className={'mb-3'}
-                                                                onClick={() => {
-                                                                    handleCreateButton()
-                                                                }}>
-                    {props.createButtonLabel ?? 'Create'}
-                </Button> : null
-            }
-
-
-            <div className={'d-flex mb-2 flex-column flex-sm-row'}>
-                <div className={'d-flex align-items-center'}>
+            <div className={'d-flex gap-3 mb-2 flex-column flex-sm-row'}>
+                <div className={'d-flex align-items-end '}>
                     <Form.Select
                         className={'d-inline-block me-1'}
                         style={{height: 30, width: 120, fontSize: 14}}
                         value={pagination.pageSize}
-                        onChange={e => {
-                            // setPageSize(Number(e.target.value))
+                        onChange={(e) => {
+                            pagination.setPageSize(Number(e.target.value))
                         }}
                     >
                         {[10, 20, 30, 40, 50].map(pageSize => (
@@ -96,15 +92,55 @@ const ConsoleFetchTable = (props: {
                         <div>
                             Page <span className={'fw-bold'}>{pagination.pageIndex}</span> of {pageCount}
                         </div>
-                        Showing {pagination.pageIndex }-{(pagination.pageIndex) * pagination.pageSize} of {props.data.length} items.
+                        Showing {pagination.pageIndex}-{(pagination.pageIndex) * pagination.pageSize} of {props.total} items.
                     </div>
                 </div>
-                <div className={`ms-auto d-flex align-items-center ${props.hideSearch ? 'd-none': ''}`}>
-                    <Form.Control style={{height: 30}} placeholder={'Search'}></Form.Control>
-                    <Button style={{width: 40, height: 35}} className={'p-0 ms-1'} variant={'outline-primary'}>
-                        <Search size={20}/>
-                    </Button>
+                <div className={'ms-md-auto d-flex flex-column'}>
+                    <div>
+                        {
+                            (props.filters?.length ?? 0)  > 0 ? <div className={'d-flex flex-wrap'}>
+                                Filter:
+                                <Form.Group>
+                                    {
+                                        props.filters?.map((filter, index) => (
+                                            <Form.Check name="filter_device" inline label={filter.label}
+                                                        id={'filter_' + index}/>
+                                        ))
+                                    }
+                                </Form.Group>
+                            </div> : null
+                        }
+                    </div>
+                    <div className={` d-flex align-items-center ${props.hideSearch ? 'd-none' : ''}`}>
+                        <Form.Control style={{height: 30}}
+                                      defaultValue={''}
+                                      onChange={(e) => {
+                                          setSearch(e.target.value)
+                                      }}
+                                      placeholder={'Search'}></Form.Control>
+                        <Button style={{width: 40, height: 35}}
+                                onClick={(e) => {
+                                    props.handleSearch && props.handleSearch(
+                                        search
+                                    )
+                                }}
+                                className={'p-0 ms-1'} variant={'outline-primary'}>
+                            <Search size={20}/>
+                        </Button>
+                    </div>
                 </div>
+                <div className={'align-items-end d-flex'}>
+                    {
+                        props.hideCreateButton != true ? <Button variant={'success'}
+                                                                 disabled={props.disableCreateButton}
+                                                                 onClick={() => {
+                                                                     handleCreateButton()
+                                                                 }}>
+                            {props.createButtonLabel ?? 'Create'}
+                        </Button> : null
+                    }
+                </div>
+
             </div>
 
 
@@ -112,10 +148,10 @@ const ConsoleFetchTable = (props: {
                 <div className={`console-table-wrapper ${props.showLoading ? 'loading' : ''}`}>
                     <BTable
                         className={'console-table '}
-                        striped hover size="sm" >
+                        striped hover size="sm">
                         <thead>
                         {table.getHeaderGroups().map((headerGroup, index) => (
-                            <tr key={'tr_' +index}>
+                            <tr key={'tr_' + index}>
 
                                 <th className={'text-center'}>
                                     <div className={'console-table-th'}>
@@ -123,17 +159,17 @@ const ConsoleFetchTable = (props: {
                                     </div>
                                 </th>
 
-                                {headerGroup.headers.map((header, index2) => (
-                                    <th  key={'th_'+ header.id}>
-                                {header.isPlaceholder ? null : (
-                                    <div   className={'console-react-table-th'}>
-                                        {flexRender(
-                                            header.column.columnDef.header,
-                                            header.getContext()
+                                {headerGroup.headers.map((header) => (
+                                    <th key={'th_' + header.id}>
+                                        {header.isPlaceholder ? null : (
+                                            <div className={'console-react-table-th'}>
+                                                {flexRender(
+                                                    header.column.columnDef.header,
+                                                    header.getContext()
+                                                )}
+                                            </div>
                                         )}
-                                    </div>
-                                )}
-                            </th>
+                                    </th>
 
                                 ))}
                             </tr>
@@ -142,8 +178,8 @@ const ConsoleFetchTable = (props: {
 
                         <tbody>
 
-                        {table.getRowModel().rows.map( (row, i) => (
-                            <tr key={row.id} >
+                        {table.getRowModel().rows.map((row, i) => (
+                            <tr key={row.id}>
                                 <td
                                     className={'text-center'}
                                     style={{
@@ -166,7 +202,7 @@ const ConsoleFetchTable = (props: {
                     </BTable>
                 </div>
                 {
-                    props.showLoading  ? <div className={'w-100 mt-4 mb-5 text-center'}>
+                    props.showLoading ? <div className={'w-100 mt-4 mb-5 text-center'}>
                         <Spinner variant={'primary'}/>
                     </div> : null
                 }
@@ -175,9 +211,9 @@ const ConsoleFetchTable = (props: {
                     <div>
                         <div className={'d-inline-block'} style={{fontSize: 12, color: '#6C757D'}}>
                             <div>
-                                Page <span className={'fw-bold'}>{pagination.pageIndex }</span> of {pageCount}
+                                Page <span className={'fw-bold'}>{pagination.pageIndex}</span> of {pageCount}
                             </div>
-                            Showing {pagination.pageIndex }-{(pagination.pageIndex) * pagination.pageSize} of {props.data.length} items.
+                            Showing {pagination.pageIndex}-{(pagination.pageIndex) * pagination.pageSize} of {props.total} items.
                         </div>
                     </div>
 
@@ -189,7 +225,7 @@ const ConsoleFetchTable = (props: {
                                 size={'sm'}
                                 className={'ms-1 d-inline-block'}
                                 type="number"
-                                defaultValue={pagination.pageIndex }
+                                defaultValue={pagination.pageIndex}
                                 onChange={e => {
                                     const page = e.target.value ? Number(e.target.value) - 1 : 0
                                     pagination.gotoPage(page)

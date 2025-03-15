@@ -11,6 +11,7 @@ import {Input, Label, NavItem, Nav, NavLink, TabContent, TabPane} from "reactstr
 import TextConfig from "../../../../../../hype/share-components/TextConfig";
 import {LayoutComponentInterface, LayoutComponentType} from "../../../../../../hype/classes/generate-input.interface";
 import RadioConfig from "./configs/RadioConfig";
+import RelationSelectConfig from "./configs/RelationSelectConfig";
 
 interface IComponentSelectOption {
     layoutType: string;
@@ -259,15 +260,24 @@ const BoxConfigCanvas = (props: { show: boolean }) => {
         for (const c of components) {
             const compBoxData = layoutItemList.find(box => box.component?.slug == c.slug)
             if (compBoxData == null) {
+                console.log(c)
+                if(c.componentTemplate === 'number-input'){
+                    options.push({
+                        slug: c.slug,
+                        value: c.id + '_relation-select',
+                        layoutType: 'input',
+                        type: 'relation-select',
+                        label: `${c.name}-${c.slug} (relation-select)`
+                    })
+                }
                 options.push({
                     slug: c.slug,
-                    value: c.id,
+                    value: c.id + '_' + c.componentTemplate,
                     layoutType: 'input',
                     type: c.componentTemplate,
                     label: `${c.name}-${c.slug} (${c.componentTemplate})`
                 })
             }
-
         }
         return options;
     }
@@ -343,10 +353,11 @@ const BoxConfigCanvas = (props: { show: boolean }) => {
             </Offcanvas.Header>
             <Offcanvas.Body>
                 <>
+
                     <div className={'d-flex'}>
                         <a href={"https://hype-docs-e0110.web.app/form#%E0%B8%AA%E0%B8%A3%E0%B9%89%E0%B8%B2%E0%B8%87%E0%B8%84%E0%B8%AD%E0%B8%A1%E0%B9%82%E0%B8%9E%E0%B9%80%E0%B8%99%E0%B9%89%E0%B8%99%E0%B9%83%E0%B8%99-layout"}
                            style={{}} target={"_blank"} rel="noreferrer"><Info/>
-                        </a> {currentSelectedBox?.id}
+                        </a> <span className={'ms-1'}>{currentSelectedBox?.id}</span>
                         {
                             currentSelectedBox != null && boxConfigFormAction === 'edit' ?
 
@@ -506,7 +517,7 @@ const BoxConfigCanvas = (props: { show: boolean }) => {
                                                                     }} value={options?.configLabel}/>
                                                                 </Col>
 
-                                                                <Col sm={12} lg={12}>
+                                                                <Col sm={12} lg={12} className={'mb-3'}>
                                                                     <Label className='form-label'
                                                                            for='config-description'>
                                                                         Description
@@ -554,6 +565,15 @@ const BoxConfigCanvas = (props: { show: boolean }) => {
                                                     setOption(updatedOption)
                                                 }}/>
                                             ) : null
+                                    }
+
+                                    {
+                                        watchComponentSelect && (watchComponentSelect.type === 'relation-select') ? (
+                                            <RelationSelectConfig options={options} onChange={(e) => {
+                                                console.log('RelationSelectConfig', e);
+                                                setOption(e)
+                                            }}/>
+                                        ) : null
                                     }
 
                                     {/*{*/}

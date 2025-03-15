@@ -19,24 +19,15 @@ const ConsoleStaticTable = (props: {
     onCreateClick?: () => void,
     onSearchClick?: (s: string) => void,
     columns: any,
-    customStaticState?: useStaticTableType,
     data: any,
 }) => {
+
+    const [search, setSearch] = useState<string>('')
 
     const total = useMemo(() => {
         return props.data.length
     },[props.data])
 
-    function getStaticState(): useStaticTableType {
-        let tempStaticTableState = props.customStaticState
-        if(tempStaticTableState == null) {
-            tempStaticTableState = useStaticTable(props.data)
-        }
-        return tempStaticTableState
-    }
-    const staticTableState = getStaticState()
-
-    const [search, setSearch] = useState<string>('')
 
     const [pagination, setPagination] = useState<PaginationState>({
         pageIndex: 0,
@@ -71,7 +62,7 @@ const ConsoleStaticTable = (props: {
     }, [pagination.pageIndex] )
 
     const canNextPage = useMemo(() => {
-        return pagination.pageIndex < (total / pagination.pageSize) - 1
+        return (pagination.pageIndex + 1) < total / pagination.pageSize
     }, [pagination.pageIndex, total , pagination.pageSize] )
 
     const pageCount = useMemo(() => {
@@ -80,9 +71,9 @@ const ConsoleStaticTable = (props: {
 
 
     const table = useReactTable({
-        data: staticTableState.displayData,
+        data: props.data,
         columns: props.columns,
-        rowCount: staticTableState.displayData, // new in v8.13.0 - alternatively, just pass in `pageCount` directly
+        rowCount: props.data.length, // new in v8.13.0 - alternatively, just pass in `pageCount` directly
         getCoreRowModel: getCoreRowModel(),
         onPaginationChange: setPagination,
         //no need to pass pageCount or rowCount with client-side pagination as it is calculated automatically
@@ -142,16 +133,14 @@ const ConsoleStaticTable = (props: {
                 </div>
                 <div className={`ms-auto d-flex align-items-center ${props.hideSearch ? 'd-none': ''}`}>
                     <Form.Control style={{height: 30}} placeholder={'Search'}
-                                  onChange={(e) => {
-                                      setSearch(e.target.value)
-                                  }}
+                                    onChange={(e) => {
+                                        setSearch(e.target.value)
+                                    }}
                     ></Form.Control>
                     <Button style={{width: 40, height: 35}} className={'p-0 ms-1'} variant={'outline-primary'}
                             onClick={(e) => {
-                                if(props.onSearchClick != null) {
+                                if(props.onSearchClick != null)
                                     props.onSearchClick(search)
-                                }
-                                staticTableState.onSearchClick(search)
                             }}
                     >
                         <Search size={20}/>
@@ -187,29 +176,29 @@ const ConsoleStaticTable = (props: {
                         ))}
                         </thead>
                         <tbody>
-                        {table.getPaginationRowModel().rows.map( (row, i) => (
+                        {table.getRowModel().rows.map( (row, i) => (
                             <tr key={row.id}>
-                                <td
-                                    className={'text-center'}
-                                    style={{
-                                        verticalAlign: 'middle',
-                                        display: 'table-cell'
-                                    }}>
-                                    {(pagination.pageIndex * pagination.pageSize) + i + 1}
-                                </td>
-
-                                {row.getVisibleCells().map(cell => (
                                     <td
+                                        className={'text-center'}
                                         style={{
                                             verticalAlign: 'middle',
                                             display: 'table-cell'
-                                        }}
-                                        key={cell.id}
-                                    >
+                                        }}>
+                                        {(pagination.pageIndex * pagination.pageSize) + i + 1}
+                                    </td>
+
+                                {row.getVisibleCells().map(cell => (
+                                    <td
+                                            style={{
+                                                verticalAlign: 'middle',
+                                                display: 'table-cell'
+                                            }}
+                                            key={cell.id}
+                                        >
                                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                                     </td>
                                 ))}
-                            </tr>
+                                </tr>
                         ))}
                         </tbody>
                     </BTable>
@@ -276,39 +265,8 @@ const ConsoleStaticTable = (props: {
         </>
 
     )
+
 }
 
-
-export type useStaticTableType = {
-    search: string,
-    setSearch: (s: string) => void,
-    displayData: any,
-    onSearchClick: (s: string) => void
-}
-export const useStaticTable = (data: any): useStaticTableType => {
-    const [search, setSearch] = useState<string>('')
-    const onSearchClick = (s: string) => {
-        setSearch(s)
-    }
-
-    const displayData = useMemo(() => {
-        if(data != null) {
-            return  data.filter((v: any) => {
-                const searchKey = Object.keys(v).map((k: string) => {
-                    return v[k]?.toString().toLowerCase()
-                })
-                return searchKey.join(' ').includes(search.toLowerCase())
-            })
-        }
-        return [];
-    }, [search, data])
-
-    return {
-        search,
-        setSearch,
-        displayData,
-        onSearchClick
-    }
-}
 
 export default ConsoleStaticTable;
