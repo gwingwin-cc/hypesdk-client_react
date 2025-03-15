@@ -1,5 +1,5 @@
 import {Link, NavLink, Outlet, useLocation, useNavigate} from "react-router-dom";
-import React, {useEffect, useState} from "react";
+import React, {useEffect, useMemo, useState} from "react";
 import useBoundStore from "../stores";
 import {Dropdown, Button, Container, Nav, Navbar} from "react-bootstrap";
 import {
@@ -16,14 +16,15 @@ import {
     X
 } from "react-feather";
 import {getHomeRouteForLoggedInUser} from "../libs/util";
-import {useAppData} from "../contexts/AppDataContext";
-import {useAppAuth} from "../contexts/AppAuthContext";
-import {LoadingBar} from "../components/LoadingBar";
+import {LoadingBar} from "../hype/components/LoadingBar";
+import { useAppAuth } from "../hype/contexts/AppAuthContext";
+import { useAppData } from "../hype/contexts/AppDataContext";
 
 function LayoutAuth() {
     const [showSidebar, setShowSidebar] = useState(true);
     const authStore = useBoundStore(state => state.auth)
     const username = useBoundStore((state) => state.auth.user?.username);
+    const roles = useBoundStore((state) => state.auth.user?.roles);
     const appStore = useBoundStore((state) => state.app);
     const navigate = useNavigate();
     const location = useLocation();

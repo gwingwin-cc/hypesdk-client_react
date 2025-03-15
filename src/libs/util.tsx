@@ -7,6 +7,7 @@ export const getHomeRouteForLoggedInUser = (userRoles: {slug: 'admin' | 'user'| 
     }
     return '/access-control'
 }
+
 export enum AppModeType {
     READONLY='READONLY',
     EDITOR = 'EDITOR',
@@ -118,4 +119,8 @@ export const formatDateToMonthShort = (value: Date, toTimeForCurrentDay = true) 
     }
 
     return new Intl.DateTimeFormat('en-US', formatting).format(new Date(value))
+}
+
+export function replaceTemplateText(template: string, data: any): string {
+    return template.replace(/{(\w+)}/g, (_, key) => data[key] !== undefined ? data[key] : `{${key}}`);
 }

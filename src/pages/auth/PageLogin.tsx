@@ -11,7 +11,7 @@ import {Button, Card, Col, Container, Form, Row} from "react-bootstrap";
 import Select from "react-select";
 import {Database} from "react-feather";
 import useBoundStore from "../../stores";
-import {getHomeRouteForLoggedInUser} from "../../libs/util";
+import { useAppAuth } from '../../hype/contexts/AppAuthContext';
 
 
 const defaultValues = {
@@ -28,6 +28,8 @@ const PageLogin = () => {
     const appInfo = useBoundStore(state => state.app.appInfo)
     const authStore = useBoundStore(state => state.auth)
     const [showRemoteSetting, setShowRemoteSetting] = useState(false);
+    const authContext = useAppAuth()
+
     const {
         control,
         setError,
@@ -47,18 +49,10 @@ const PageLogin = () => {
     }, [apiUrl])
 
     useEffect(() => {
-        console.log('authStore', authStore)
-        if (!authStore.sliceInit) {
-            console.log('init')
-            authStore.init();
+        if (authContext.isAuthenticated) {
+            navigate('/console/forms', {replace: true})
         }
-        if (authStore.sliceInit && authStore.user != null && Object.keys(authStore.user).length > 0) {
-            console.log('authStore.userData', authStore.user)
-            navigate(getHomeRouteForLoggedInUser(authStore.user.roles))
-        }
-    }, [authStore.user, authStore.sliceInit])
-
-
+    }, [authContext.isAuthenticated]);
 
     const onSubmit = (data: {
         password: string,
@@ -68,7 +62,7 @@ const PageLogin = () => {
             // console.log(data.loginEmail, data.password)
             authStore.login(data.loginEmail, data.password)
                 .then(() => {
-                    authStore.fetchProfile().catch(e => console.error(e))
+                    authContext.initializeLocalStorage( )
                 })
                 .catch(e => {
                     if(e.response?.data?.message){
@@ -110,13 +104,8 @@ const PageLogin = () => {
                     <div className='d-flex m-0'>
                         <Link className='brand-logo' to='/' onClick={e => e.preventDefault()}>
                             {
-                                // hypeStore && hypeStore.appInfo && hypeStore.appInfo.appIcon ? (
-                                //     <img src={`${apiUrl}/form-data/viewfile/${hypeStore.appInfo.appIcon}`} height='28'
-                                //          alt='logo'/>
-                                // ) : (
                                 <img height='62'
                                      src={hypeLogo} alt={'hype logo'}/>
-                                // )
                             }
 
                         </Link>

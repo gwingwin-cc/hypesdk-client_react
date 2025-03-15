@@ -119,7 +119,7 @@ export const findForm = async (id: number | null, slug: string | null) => {
 }
 
 
-export const fetchForm = async (id: number | undefined, query: any) => {
+export const fetchForm = async (id: string | number | undefined, query: any) => {
     const response = await axiosInstance.get(`/forms/${id}`, {
         params: query
     })
@@ -129,6 +129,7 @@ export const fetchForm = async (id: number | undefined, query: any) => {
         throw new Error('response not 200')
     }
 }
+
 export const fetchFormBySlug = async (slug: string | undefined, query: any) => {
     const response = await axiosInstance.get(`/forms/slug/${slug}`, {
         params: query
@@ -176,9 +177,10 @@ export const createFormRecord = async (formId: number, data: any, recordState: '
     }
 }
 
-export const updateFormRecord = async (formId: number, recordId: number, data: any, recordState: 'DRAFT' | 'ACTIVE') => {
+export const updateFormRecord = async (formId: number, recordId: number, data: any, deleteFiles: any, recordState: 'DRAFT' | 'ACTIVE') => {
     const response = await axiosInstance.patch(`/forms/${formId}/records/${recordId}`, {
         data,
+        deleteFiles,
         recordState
     })
     if (response.status == 204) {
@@ -393,5 +395,26 @@ export const applyUserRoles = async (userId: number | undefined, roleIds: Array<
 export const fetchProfile = async () => {
     return await axiosInstance.get(`/auth/me`)
 }
+
+export const uploadFileToFormRecord = async (formId: number, recordId: number, fieldName: string, files: Array<any>) => {
+    const formData = new FormData();
+    formData.append('fieldName', fieldName)
+    files.forEach( f => {
+        formData.append('files', f)
+    })
+    const response = await axiosInstance.patch(`/forms/${formId}/records/${recordId}/files`,
+        formData,
+        {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            }
+        })
+    if (response.status == 204) {
+        return response.data;
+    } else {
+        throw new Error('response not 204')
+    }
+}
+
 
 export default axiosInstance;

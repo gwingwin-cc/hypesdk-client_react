@@ -14,6 +14,7 @@ export interface AuthContextType {
     logout: () => Promise<void>;
     setAuth: (a: string, r: string, i: string) => void;
     decodedToken: IDecodedToken | undefined;
+    initializeLocalStorage: () => void;
 }
 export const AppAuthContext = createContext<AuthContextType | undefined>(undefined);
 

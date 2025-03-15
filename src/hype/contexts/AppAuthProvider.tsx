@@ -19,19 +19,27 @@ export const AppAuthProvider = (props: {
     const [, setIdToken] = useState<string>();
     const [decodedToken, setDecodedToken ] = useState<IDecodedToken>();
 
+    const initializeLocalStorage = () => {
+
+        const accessToken = localStorage.getItem('accessToken');
+        const refreshToken = localStorage.getItem('refreshToken');
+        const idToken = localStorage.getItem('idToken');
+        if (accessToken && refreshToken ) {
+            setAuth(accessToken, refreshToken ?? '', idToken ?? '');
+        }else{
+            setIsAuthenticated(false);
+        }
+        setIsInit(true);
+    }
+
     useEffect(() => {
         if (!isInit) {
-            const accessToken = localStorage.getItem('accessToken');
-            const refreshToken = localStorage.getItem('refreshToken');
-            const idToken = localStorage.getItem('idToken');
-            if (accessToken && refreshToken && idToken) {
-                setAuth(accessToken, refreshToken, idToken);
-            }else{
-                setIsAuthenticated(false);
-            }
-            setIsInit(true);
+            initializeLocalStorage()
         }
     }, [isInit]);
+
+
+
 
     const login = async () => {
         const url = domain + '/login?client_id=' + clientId + '&response_type=' + responseType + '&scope=' + scope + '&redirect_uri=' + redirectUri;
@@ -47,8 +55,11 @@ export const AppAuthProvider = (props: {
         setRefreshToken(refreshToken);
         setIdToken(idToken);
         setIsAuthenticated(true);
-        setDecodedToken(jwtDecode(idToken));
-        console.log(jwtDecode(idToken))
+        if( idToken != null && idToken != '')
+        {
+            setDecodedToken(jwtDecode(idToken));
+            console.log(jwtDecode(idToken))
+        }
     }
     const logout = async () => {
         localStorage.clear();
@@ -57,7 +68,9 @@ export const AppAuthProvider = (props: {
         window.location.href = '/';
     }
     return <>
-        <AppAuthContext.Provider value={{ decodedToken, redirectUri, setAuth, isInit, isAuthenticated, login, logout }}>
+        <AppAuthContext.Provider value={{
+            initializeLocalStorage,
+            decodedToken, redirectUri, setAuth, isInit, isAuthenticated, login, logout }}>
             {props.children}
         </AppAuthContext.Provider>
     </>
